@@ -1,0 +1,271 @@
+
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/capitalflow_portal/app/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("user")
+  companyName   String?
+  industry      String?
+  phoneNumber   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  deals         Deal[]
+  transactions  Transaction[]
+  notifications Notification[]
+  statements    Statement[]
+  prepayments   Prepayment[]
+  applications  Application[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Deal {
+  id                 String      @id @default(cuid())
+  userId             String
+  dealNumber         String      @unique
+  productType        ProductType
+  dealName           String
+  principalAmount    Decimal     @db.Decimal(15, 2)
+  interestRate       Decimal     @db.Decimal(5, 4)
+  termMonths         Int
+  monthlyPayment     Decimal?    @db.Decimal(15, 2)
+  remainingBalance   Decimal     @db.Decimal(15, 2)
+  nextPaymentDate    DateTime?
+  maturityDate       DateTime
+  status             DealStatus
+  collateralType     String?
+  collateralValue    Decimal?    @db.Decimal(15, 2)
+  originationDate    DateTime    @default(now())
+  lastPaymentDate    DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  prepayments  Prepayment[]
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  dealId          String?
+  transactionType TransactionType
+  amount          Decimal           @db.Decimal(15, 2)
+  description     String
+  merchantName    String?
+  category        String?
+  transactionDate DateTime
+  status          TransactionStatus @default(PENDING)
+  referenceNumber String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal Deal? @relation(fields: [dealId], references: [id], onDelete: SetNull)
+}
+
+model Statement {
+  id           String   @id @default(cuid())
+  userId       String
+  statementDate DateTime
+  month        Int
+  year         Int
+  totalCredits Decimal  @db.Decimal(15, 2)
+  totalDebits  Decimal  @db.Decimal(15, 2)
+  netAmount    Decimal  @db.Decimal(15, 2)
+  fileUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  priority    NotificationPriority
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  actionUrl   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Prepayment {
+  id              String           @id @default(cuid())
+  userId          String
+  dealId          String
+  requestedAmount Decimal          @db.Decimal(15, 2)
+  currentBalance  Decimal          @db.Decimal(15, 2)
+  savingsAmount   Decimal          @db.Decimal(15, 2)
+  payoffAmount    Decimal          @db.Decimal(15, 2)
+  status          PrepaymentStatus @default(PENDING)
+  requestDate     DateTime         @default(now())
+  approvedDate    DateTime?
+  letterGenerated Boolean          @default(false)
+  letterUrl       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model Application {
+  id                    String            @id @default(cuid())
+  userId                String
+  applicationNumber     String            @unique
+  productType           ProductType
+  requestedAmount       Decimal           @db.Decimal(15, 2)
+  purposeOfLoan         String
+  businessName          String
+  businessType          String
+  yearsInBusiness       Int
+  annualRevenue         Decimal           @db.Decimal(15, 2)
+  monthlyRevenue        Decimal           @db.Decimal(15, 2)
+  creditScore           Int?
+  collateralType        String?
+  collateralValue       Decimal?          @db.Decimal(15, 2)
+  collateralDescription String?
+  preferredTerm         Int               // months
+  contactName           String
+  contactEmail          String
+  contactPhone          String
+  businessAddress       String
+  businessCity          String
+  businessState         String
+  businessZip           String
+  bankName              String?
+  bankAccountNumber     String?
+  bankRoutingNumber     String?
+  additionalInfo        String?
+  status                ApplicationStatus @default(PENDING)
+  submissionDate        DateTime          @default(now())
+  reviewDate            DateTime?
+  approvalDate          DateTime?
+  rejectionReason       String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ProductType {
+  LINE_OF_CREDIT
+  EQUIPMENT_FINANCE
+  TERM_LOAN
+}
+
+enum DealStatus {
+  ACTIVE
+  PENDING
+  CLOSED
+  DEFAULTED
+  PAID_OFF
+}
+
+enum TransactionType {
+  PAYMENT
+  DISBURSEMENT
+  FEE
+  INTEREST
+  PRINCIPAL
+  REFUND
+  TRANSFER
+  DEPOSIT
+  WITHDRAWAL
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationType {
+  SECURITY_ALERT
+  TRANSACTION_UPDATE
+  DEAL_OPPORTUNITY
+  PAYMENT_REMINDER
+  SYSTEM_NOTIFICATION
+  RENEWAL_ALERT
+}
+
+enum NotificationPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum PrepaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum ApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+  WITHDRAWN
+}

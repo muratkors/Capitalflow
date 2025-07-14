@@ -1,0 +1,25 @@
+
+# Development Dockerfile
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache libc6-compat
+
+# Copy package files
+COPY app/package.json app/yarn.lock* ./
+RUN yarn install
+
+# Copy application code
+COPY app/ .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Expose port
+EXPOSE 3000
+
+# Start development server
+CMD ["yarn", "dev"]

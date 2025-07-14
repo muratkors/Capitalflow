@@ -1,0 +1,52 @@
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Development
+  db:
+    image: postgres:15-alpine
+    container_name: capitalflow_db_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: capitalflow
+      POSTGRES_PASSWORD: capitalflow_password
+      POSTGRES_DB: capitalflow_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U capitalflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Development Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: capitalflow_app_dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://capitalflow:capitalflow_password@db:5432/capitalflow_dev"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "your-super-secret-jwt-secret-key-here"
+      NODE_ENV: "development"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+      - /app/.next
+    command: yarn dev
+
+volumes:
+  postgres_dev_data:
+
+networks:
+  default:
+    name: capitalflow_dev_network

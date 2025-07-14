@@ -1,0 +1,49 @@
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.tsbuildinfo
+.coverage/
+coverage/
+
+# Prisma
+prisma/migrations/
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# Lock files
+yarn.lock
+package-lock.json
+
+# Editor files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Config files
+next.config.js
+tailwind.config.ts
+postcss.config.js
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
